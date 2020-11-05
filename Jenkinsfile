@@ -1,7 +1,22 @@
 pipeline {
  agent any
  environment {
-  SONARQUBE_URL = "http://localhost"
+  // This can be nexus3 or nexus2
+  NEXUS_VERSION = "nexus3"
+  // This can be http or https
+  NEXUS_PROTOCOL = "http"
+  // Where your Nexus is running. In my case:
+  NEXUS_URL = "ec2-52-212-29-159.eu-west-1.compute.amazonaws.com:8081"
+  // Repository where we will upload the artifact
+  NEXUS_REPOSITORY = "maven-snapshots"
+  // Jenkins credential id to authenticate to Nexus OSS
+  NEXUS_CREDENTIAL_ID = "nexus-credentials"
+  /* 
+    Windows: set the ip address of docker host. In my case 192.168.99.100.
+    to obtains this address : $ docker-machine ip
+    Linux: set localhost to SONARQUBE_URL
+  */
+  SONARQUBE_URL = "http://192.168.99.100"
   SONARQUBE_PORT = "9000"
  }
  options {
@@ -13,13 +28,49 @@ pipeline {
     checkout scm
    }
   }
-  stage('Code Quality Analysis') {
+  stage('Build') {
    parallel {
+    stage('Compile') {
+     agent {
+      docker {
+       image 'maven:3.6.0-jdk-8-alpine'
+       args '-v /Users/IN-NN-045/.m2/repository:/root/.m2/repository'
+       // to use the same node and workdir defined on top-level pipeline for all docker agents
+       reuseNode true
+      }
+     }
+     steps {
+      sh ' mvn clean compile'
+     }
+    }
+    stage('CheckStyle') {
+     agent {
+      docker {
+       image 'maven:3.6.0-jdk-8-alpine'
+       args '-v /Users/IN-NN-045/.m2/repository:/root/.m2/repository'
+       reuseNode true
+      }
+     }
+     steps {
+      sh ' mvn checkstyle:checkstyle'
+      step([$class: 'CheckStylePublisher',
+       //canRunOnFailed: true,
+       defaultEncoding: '',
+       healthy: '100',
+       pattern: '**/target/checkstyle-result.xml',
+       unHealthy: '90',
+       //useStableBuildAsReference: true
+      ])
+     }
+    }
+   }
+  }
+  stage('Code Quality Analysis') {
     stage('SonarQube') {
      agent {
       docker {
        image 'maven:3.6.0-jdk-8-alpine'
-       args "-v ${user.home}/.m2/repository/"
+       args "-v /Users/IN-NN-045/.m2/repository:/root/.m2/repository"
        reuseNode true
       }
      }
@@ -27,7 +78,6 @@ pipeline {
       sh " mvn sonar:sonar -Dsonar.host.url=$SONARQUBE_URL:$SONARQUBE_PORT"
      }
     }
-   }
   }
  }
 }
