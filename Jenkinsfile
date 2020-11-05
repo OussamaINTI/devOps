@@ -8,6 +8,11 @@ pipeline {
   skipDefaultCheckout()
  }
  stages {
+ stage('SCM') {
+   steps {
+    checkout scm
+   }
+  }
           stage("build & SonarQube analysis") {
             agent any
             steps {
