@@ -14,14 +14,7 @@ pipeline {
    }
   }
 
-  stage('Unit Tests') {
-   when {
-    anyOf { branch 'master'; branch 'develop' }
-   }
-   steps {
-    sh 'mvn test'
-   }
-  }
+
 
   stage('Code Quality Analysis') {
    parallel {
