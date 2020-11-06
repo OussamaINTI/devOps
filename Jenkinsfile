@@ -7,6 +7,9 @@ pipeline {
  options {
   skipDefaultCheckout()
  }
+ tools {
+    maven 'maven'
+  }
  stages {
   stage('SCM') {
    steps {
