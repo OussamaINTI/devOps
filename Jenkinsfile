@@ -16,7 +16,7 @@ pipeline {
     to obtains this address : $ docker-machine ip
     Linux: set localhost to SONARQUBE_URL
   */
-  SONARQUBE_URL = "http://localhost"
+  SONARQUBE_URL = "http://192.168.99.100"
   SONARQUBE_PORT = "9000"
  }
  options {
@@ -28,17 +28,43 @@ pipeline {
     checkout scm
    }
   }
-  stage('SonarQube analysis') {
-      steps {
-        script {
-          // requires SonarQube Scanner 2.8+
-          scannerHome = tool 'SonarQube Scanner 4'
-        }
-        withSonarQubeEnv('SonarQube Scanner') {
-          sh "${scannerHome}/bin/sonar-scanner"
-        }
+  stage('Build') {
+   parallel {
+    stage('Compile') {
+     agent {
+      docker {
+       image 'maven:3.6.0-jdk-8-alpine'
+       args '-v /root/.m2/repository:/root/.m2/repository'
+       // to use the same node and workdir defined on top-level pipeline for all docker agents
+       reuseNode true
       }
+     }
+     steps {
+      sh ' mvn clean compile'
+     }
     }
+    stage('CheckStyle') {
+     agent {
+      docker {
+       image 'maven:3.6.0-jdk-8-alpine'
+       args '-v /root/.m2/repository:/root/.m2/repository'
+       reuseNode true
+      }
+     }
+     steps {
+      sh ' mvn checkstyle:checkstyle'
+      step([$class: 'CheckStylePublisher',
+       //canRunOnFailed: true,
+       defaultEncoding: '',
+       healthy: '100',
+       pattern: '**/target/checkstyle-result.xml',
+       unHealthy: '90',
+       //useStableBuildAsReference: true
+      ])
+     }
+    }
+   }
+  }
   stage('Unit Tests') {
    when {
     anyOf { branch 'master'; branch 'develop' }
@@ -139,6 +165,17 @@ pipeline {
      steps {
       sh " mvn sonar:sonar -Dsonar.host.url=$SONARQUBE_URL:$SONARQUBE_PORT"
      }
+    }
+	stage('SonarQube analysis') {
+      steps {
+        script {
+          // requires SonarQube Scanner 2.8+
+          scannerHome = tool 'SonarQube Scanner 4'
+        }
+        withSonarQubeEnv('SonarQube Scanner') {
+          sh "${scannerHome}/bin/sonar-scanner"
+        }
+      }
     }
    }
    post {
