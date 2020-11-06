@@ -16,7 +16,7 @@ pipeline {
     to obtains this address : $ docker-machine ip
     Linux: set localhost to SONARQUBE_URL
   */
-  SONARQUBE_URL = "http://192.168.99.100"
+  SONARQUBE_URL = "http://localhost"
   SONARQUBE_PORT = "9000"
  }
  options {
@@ -32,10 +32,10 @@ pipeline {
       steps {
         script {
           // requires SonarQube Scanner 2.8+
-          user.home = tool 'sonar-scanner-4.5.0.2216-windows'
+          scannerHome = tool 'SonarQube Scanner 2.8'
         }
         withSonarQubeEnv('SonarQube Scanner') {
-          sh "${user.home}/bin/sonar-scanner"
+          sh "${scannerHome}/bin/sonar-scanner"
         }
       }
     }
