@@ -2,7 +2,7 @@ node{
 stage('SCM'){
  git 'https://github.com/OussamaINTI/devOps'
 }
-sage('Compile'){
+stage('Compile'){
 sh 'mvn package'
 }
 }
