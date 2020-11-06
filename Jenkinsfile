@@ -7,7 +7,7 @@ def mvnHome = tool name: 'maven-3' , type: 'maven'
 sh "${mvnHome}/bin/mvn package"
 }
  stage("SonarQube Analysis") {
-            def scannerHome = tool 'SonarQube Scanner 4';
+            def scannerHome = tool name: 'SonarQube Scanner 4', type: 'SonarQube Scanner'
             sh "${scannerHome}/bin/sonar-scanner"
       }
 }
